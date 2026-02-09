@@ -29,8 +29,12 @@ async def welcome():
     """
     return 'Welcome to Order Management!'
 
-
-origins = ["*"]  
+          
+origins = [
+    "http://localhost:3000",      # React/Vue/Angular фронтенд
+    "http://localhost:8080",      # Альтернативный порт фронтенда
+    "http://127.0.0.1:3000",      # Localhost через 127.0.0.1
+]  
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
