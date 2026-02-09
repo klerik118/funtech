@@ -12,7 +12,7 @@
 | Метод | URL | Описание |
 | --- | --- | --- |
 | POST | /register/ | Регистрация пользователя (email, пароль) |
-| POST | /token/ | Получение JWT-токена (OAuth2) |
+| POST | /token | Получение JWT-токена (OAuth2) |
 | POST | /orders/ | Создание заказа (только авторизованные) |
 | GET | /orders/{order_id}/ | Получение заказа (сначала из Redis) |
 | PATCH | /orders/{order_id}/ | Обновление статуса заказа |
@@ -25,7 +25,7 @@
 - id (UUID, primary key)
 - user_id (int, ForeignKey на пользователей)
 - items (JSON, список товаров)
-- total_price (float)
+- total_price (Decimal(10, 2), точность до 2 знаков)
 - status (enum: PENDING, PAID, SHIPPED, CANCELED)
 - created_at (datetime)
 
@@ -58,7 +58,8 @@
 
 - Использование FastAPI с Pydantic.
 - Работа с PostgreSQL через SQLAlchemy + Alembic.
-- Асинхронное взаимодействие с Kafka / RabbitMQ.
+- Асинхронное взаимодействие с RabbitMQ (брокер сообщений).
+- Redis для кеширования и rate limiting.
 - Docker Compose для развертывания всей инфраструктуры.
 - Код должен быть структурированным и документированным.
 
@@ -82,14 +83,14 @@ cp .env.example .env
 3. Сгенерировать JWT ключи (RSA):
 
 ```bash
-mkdir -p .secret_key
-ssh-keygen -t rsa -b 2048 -m PEM -f .secret_key/jwt-private.pem -N ""
-ssh-keygen -f .secret_key/jwt-private.pem -e -m PEM > .secret_key/jwt-public.pem
+# Windows PowerShell
+mkdir .secret_key
+openssl genrsa -out .secret_key/jwt-private.pem 2048
+openssl rsa -in .secret_key/jwt-private.pem -pubout -out .secret_key/jwt-public.pem
 ```
 
-Или использовать openssl:
-
 ```bash
+# Linux/Mac
 mkdir -p .secret_key
 openssl genrsa -out .secret_key/jwt-private.pem 2048
 openssl rsa -in .secret_key/jwt-private.pem -pubout -out .secret_key/jwt-public.pem
@@ -103,10 +104,11 @@ docker-compose up --build
 
 ### Доступные сервисы
 
-- FastAPI app: http://localhost:8000
-- RabbitMQ UI: http://localhost:15672 (admin/admin)
-- PgAdmin: http://localhost:5050
-- RedisInsight: http://localhost:5540
+- **FastAPI приложение**: http://localhost:8000
+- **FastAPI документация (Swagger)**: http://localhost:8000/docs
+- **RabbitMQ Management UI**: http://localhost:15672 (guest/guest)
+- **PgAdmin**: http://localhost:5050 (если настроен в docker-compose)
+- **RedisInsight**: http://localhost:5540 (если настроен в docker-compose)
 
 ### Примечания
 

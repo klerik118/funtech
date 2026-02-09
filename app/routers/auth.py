@@ -1,3 +1,10 @@
+"""Маршруты автентификации и регистрации пользователей.
+
+Обработывает:
+- Пост регистрации новых пользователей
+- Получение JWT токенов
+"""
+
 from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, status
@@ -18,6 +25,18 @@ auth_router = APIRouter(tags=['Registration/Authorization'])
 
 @auth_router.post('/register/', summary='Registration with email confirmation', response_model=dict) 
 async def registration_user(new_user: UserRegister, session: AsyncSession = Depends(get_async_session)):
+    """Регистрация нового пользователя.
+    
+    Args:
+        new_user: Данные нового пользователя (электронная почта, пароль)
+        session: Асинхронная сессия BD
+        
+    Returns:
+        dict: Подтверждение регистрации
+        
+    Raises:
+        HTTPException: Пользователь с этим электронным адресом уже регистрирован
+    """
     if await UserRepository.check_for_user_existence(session, new_user.email):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -30,6 +49,18 @@ async def registration_user(new_user: UserRegister, session: AsyncSession = Depe
 
 @auth_router.post('/token', summary='Login', response_model=dict) 
 async def user_login(user: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_async_session)):
+    """Ответить JWT токен для автентифицированного пользователя.
+    
+    Args:
+        user: Креденциалы пользователя (электронная почта, пароль)
+        session: Асинхронная сессия BD
+        
+    Returns:
+        dict: JWT токен для использования в поля "Authorization: Bearer <token>"
+        
+    Raises:
+        HTTPException: Пользователь не найден или неверные креденациалы
+    """
     user_from_db = await UserRepository.get_user_by_email(session, user.username.lower())
     if not user_from_db:
         raise HTTPException(
@@ -40,6 +71,7 @@ async def user_login(user: OAuth2PasswordRequestForm = Depends(), session: Async
         user.username.lower() == user_from_db.email 
         and await verify_password(user.password, user_from_db.hashed_password)
         ):
+        # Сождаю JWT токен с приватным ключом
         private_key = auth.private_key_path.read_text()  
         expire = datetime.now(timezone.utc) + timedelta(minutes=auth.expiration)
         payload = {"sub": str(user_from_db.id), "exp": expire}
